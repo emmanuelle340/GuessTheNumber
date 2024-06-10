@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1832760171",
+    "firebase_url": "https://jeuduguess-default-rtdb.firebaseio.com",
+    "project_id": "jeuduguess",
+    "storage_bucket": "jeuduguess.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1832760171:android:f668b686edfd95e8a4122e",
+        "android_client_info": {
+          "package_name": "com.guessthenumber"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1832760171-giahurbbv2nqglu8ppllscr3ntrld2kp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.guessthenumber",
+            "certificate_hash": "e305ccc66940f406f35bc28180856664cc5605dd"
+          }
+        },
+        {
+          "client_id": "1832760171-fulqshs23vojnqogh341ggf25u966s26.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLGI9rPpFpbvici0lTEf-hC5DYcIClAcE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1832760171-fulqshs23vojnqogh341ggf25u966s26.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

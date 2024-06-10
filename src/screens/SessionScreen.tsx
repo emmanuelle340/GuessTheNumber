@@ -1,100 +1,37 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import { Party } from '../model/Party';
-// @ts-ignore
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
-type RootStackParamList = {
-    Session: undefined;
-    'Lobby Screen': undefined;
-    'Select Session': undefined;
-    'Login': undefined;
+const SessionScreen = ({ onNext, onBack, createGame }) => {
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <Icon name="arrow-back" size={30} />
+      </TouchableOpacity>
+      <Text style={styles.text}>Session Screen</Text>
+      <Button title="Creer une partie" onPress={createGame} />
+      <Button title="Rejoindre une partie" onPress={onNext} />
+    </View>
+  );
 };
-
-type SessionScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Session'>;
-type SessionScreenRouteProp = RouteProp<RootStackParamList, 'Session'>;
-
-type Props = {
-    navigation: SessionScreenNavigationProp;
-    route: SessionScreenRouteProp;
-};
-let email = ""
-const addParty =async () =>{
-    try {
-        const playerString = await AsyncStorage.getItem("Player");
-        if (playerString !== null) {
-
-            const player = JSON.parse(playerString);
-            email = player.email;
-
-            const party = new Party([email],55,email,true)
-            party.getParties()
-            // party.addPlayer("seim")
-            return player;
-        }
-    } catch (error) {
-        console.log(error)
-    }
-}
-
-const SessionScreen: React.FC<Props> = ({ navigation }) => {
-    const disconnect = async () => {
-        try {
-            navigation.navigate('Login');
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    return (
-        <View style={styles.container}>
-
-
-            <TouchableOpacity style={styles.button} onPress={() =>{
-
-                addParty()
-
-            }}>
-                <Text style={styles.buttonText}>Créer une session</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Select Session')}>
-                <Text style={styles.buttonText}>Rejoindre une session</Text>
-            </TouchableOpacity>
-
-        </View>
-    );
-};
-
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
-    },
-    image: {
-        width: 300,
-        height: 250,
-        marginTop: -150,
-        marginBottom: 100,
-    },
-    button: {
-        backgroundColor: '#1E90FF',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        marginBottom: 10,
-    },
-    buttonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 50,
+  },
+  text: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    padding: 10,
+  },
 });
 
 export default SessionScreen;
