@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import Toast from 'react-native-toast-message';
 
@@ -9,6 +9,33 @@ const NumberSelector = forwardRef(({ onNext }, ref) => {
   const handleInputChange = (value) => {
     setNumber(value);
   };
+
+  useEffect(() => {
+    const checkUser = async () => {
+
+      const deviceId = await DeviceInfo.getUniqueId();
+      const storedDeviceId = await AsyncStorage.getItem("deviceId");
+
+      if (storedDeviceId !== deviceId) {
+        await AsyncStorage.setItem("deviceId", deviceId);
+      }
+
+      const userDoc = await firestore()
+        .collection("Players")
+        .doc(deviceId)
+        .get();
+
+      if (!userDoc.exists) {
+        await firestore().collection("Rounds").doc(deviceId).set({
+          
+        });
+      }
+
+      onLogin();
+    };
+    //checkUser();
+    
+  }, [])
 
   const handleSubmit = () => {
     if (isNaN(number) || number === '') {

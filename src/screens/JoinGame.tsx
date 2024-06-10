@@ -21,6 +21,8 @@ const JoinGameScreen = ({ games, onBack, onNext }) => {
     GlobalVariables.globalString = globalString;
   }, [globalString]);
 
+  
+
   const addParticipantsGame = async (docId) => {
     try {
       const docRef = firestore().collection("Games").doc(docId);

@@ -51,13 +51,38 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
       );
 
     return () => unsubscribe();
+
+    
   }, []);
+
+  useEffect(() => {
+    const gameId = GlobalVariables.globalString;
+  
+    const unsubscribe = firestore()
+      .collection("Games")
+      .doc(gameId)
+      .onSnapshot((doc) => {
+        if (doc.exists) {
+          const gameData = doc.data();
+          if (gameData.gameStatus) {
+            onNext(); // Trigger onNext if game status is true
+          }
+        } else {
+          console.log(`Game with ID '${gameId}' does not exist.`);
+        }
+      });
+  
+    return () => unsubscribe();
+  
+  }, []);
+  
+  
 
   const handleLaunchGame = async () => {
     try {
       // Vérifier le nombre de participants
       const numParticipants = participants.length + 1; // +1 pour l'hôte
-      if (numParticipants < 2) {
+      if (numParticipants >2) {
         // Afficher un toast d'erreur si le nombre de participants est inférieur à 2
         Toast.show({
           type: "error",
@@ -70,6 +95,7 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         const gameRef = firestore().collection("Games").doc(gameId);
         await gameRef.update({
           MaxNombre: numParticipants * 2, // 2 fois le nombre de participants
+          gameStatus: true,
         });
         const gameDocRef = firestore()
           .collection("Games")
@@ -78,11 +104,9 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         let MaListe: Array<propositionPlusParticipants> = [];
         if (gameDoc.exists) {
           const participantIds = gameDoc.get("GameParticipantDeviceId");
-         
-
           if (participantIds) {
             Object.values(participantIds).forEach((item) => {
-              const tmp = new propositionPlusParticipants(item, -1);
+              const tmp = new propositionPlusParticipants(item, -1,-1);
               MaListe.push(tmp);
             });
           }
@@ -98,8 +122,6 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
           MesPropositions: MaListe,
         });
 
-        // Naviguer vers l'écran suivant
-        onNext();
       }
     } catch (error) {
       console.error("Error launching game:", error);
@@ -191,9 +213,10 @@ const styles = StyleSheet.create({
 });
 
 class propositionPlusParticipants {
-  constructor(deviceId, proposition) {
+  constructor(deviceId, proposition,secretNumber) {
     this.deviceId = deviceId;
     this.proposition = proposition;
+    this.secretNumber = secretNumber;
   }
 }
 

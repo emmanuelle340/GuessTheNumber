@@ -67,7 +67,7 @@ const App = () => {
     const fetchGames = async () => {
       const gamesSnapshot = await firestore()
         .collection("Games")
-        .where("gameStatus", "==", true)
+        .where("gameStatus", "==", false)
         .get();
       const gamesData = gamesSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -101,7 +101,7 @@ const App = () => {
       const gameRef = await firestore().collection("Games").add({
         createdBy: [deviceId, deviceName ],
         createdAt: firestore.FieldValue.serverTimestamp(),
-        gameStatus: true,
+        gameStatus: false,
         GameParticipantDeviceId: [],
         gameName: generateRandomName(),
         MaxNombre: 0,
