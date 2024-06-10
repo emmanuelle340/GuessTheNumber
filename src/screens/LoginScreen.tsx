@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import DeviceInfo from 'react-native-device-info';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Player } from '../model/Player';
+
 
 const LoginScreen = ({ onLogin }) => {
   const [deviceName, setDeviceName] = useState('');
@@ -19,8 +19,6 @@ const LoginScreen = ({ onLogin }) => {
 
   useEffect(() => {
     const checkUser = async () => {
-      const player = new Player("Mon nom 1", 256, "monEmail 1");
-      await player.addPlayer(player);
 
       const deviceId = await DeviceInfo.getUniqueId();
       const storedDeviceId = await AsyncStorage.getItem("deviceId");
@@ -39,6 +37,9 @@ const LoginScreen = ({ onLogin }) => {
           deviceId: deviceId,
           createdAt: firestore.FieldValue.serverTimestamp(),
           deviceName: deviceName,
+          MaxscoreElimination: 0,
+          MaxscoreWinner: 0,
+          lastGamePlayed : "",
         });
       }
 

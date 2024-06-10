@@ -10,13 +10,14 @@ import {
 import firestore from "@react-native-firebase/firestore";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import GlobalVariables from "../../GlobalVariables";
+import Toast from "react-native-toast-message"; // Importer le module Toast
 
 const SalleDattenteScreen = ({ onBack, onNext }) => {
   const [hostName, setHostName] = useState("");
   const [participants, setParticipants] = useState([]);
 
   useEffect(() => {
-    const gameId = GlobalVariables.globalString; // Accéder directement à la variable globale
+    const gameId = GlobalVariables.globalString;
 
     const unsubscribe = firestore()
       .collection("Games")
@@ -25,9 +26,10 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         async (doc) => {
           if (doc.exists) {
             const gameData = doc.data();
-            setHostName(gameData.createdBy[0].deviceName); // Utiliser le champ createdBy comme nom de l'hôte
+            setHostName(gameData.createdBy[1]);
 
-            const participantIds = gameData.GameParticipantDeviceId; // Assurez-vous de récupérer le bon champ
+            const participantIds = gameData.GameParticipantDeviceId;
+
             const participantsData = [];
             for (const participantId of participantIds) {
               const participantDoc = await firestore()
@@ -48,8 +50,61 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         }
       );
 
-    return () => unsubscribe(); // Nettoyer le listener lorsque le composant est démonté
+    return () => unsubscribe();
   }, []);
+
+  const handleLaunchGame = async () => {
+    try {
+      // Vérifier le nombre de participants
+      const numParticipants = participants.length + 1; // +1 pour l'hôte
+      if (numParticipants < 2) {
+        // Afficher un toast d'erreur si le nombre de participants est inférieur à 2
+        Toast.show({
+          type: "error",
+          text1: "Erreur",
+          text2: "Le nombre de participants est insuffisant.",
+        });
+      } else {
+        // Mettre à jour l'attribut MaxNombre dans le document de jeu actuel
+        const gameId = GlobalVariables.globalString;
+        const gameRef = firestore().collection("Games").doc(gameId);
+        await gameRef.update({
+          MaxNombre: numParticipants * 2, // 2 fois le nombre de participants
+        });
+        const gameDocRef = firestore()
+          .collection("Games")
+          .doc(GlobalVariables.globalString);
+        const gameDoc = await gameDocRef.get();
+        let MaListe: Array<propositionPlusParticipants> = [];
+        if (gameDoc.exists) {
+          const participantIds = gameDoc.get("GameParticipantDeviceId");
+         
+
+          if (participantIds) {
+            Object.values(participantIds).forEach((item) => {
+              const tmp = new propositionPlusParticipants(item, -1);
+              MaListe.push(tmp);
+            });
+          }
+        } else {
+          console.log(
+            "Le document 'Games' avec l'ID",
+            GlobalVariables.globalString,
+            "n'existe pas."
+          );
+        }
+        // Ajouter les propositions au document Round
+        const RoundRef = await firestore().collection("Round").add({
+          MesPropositions: MaListe,
+        });
+
+        // Naviguer vers l'écran suivant
+        onNext();
+      }
+    } catch (error) {
+      console.error("Error launching game:", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -65,7 +120,8 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => <Text>{item}</Text>}
       />
-      <Button title="Lancer" onPress={onNext} />
+      <Button title="Lancer" onPress={handleLaunchGame} />
+      <Toast ref={(ref) => Toast.setRef(ref)} />
     </View>
   );
 };
@@ -78,7 +134,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 50, // To ensure there is space at the top for the back button
+    paddingTop: 50,
   },
   text: {
     fontSize: 24,
@@ -94,7 +150,6 @@ const styles = StyleSheet.create({
     left: 10,
     padding: 10,
   },
-
   listContainer: {
     paddingVertical: 16,
   },
@@ -134,5 +189,12 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 });
+
+class propositionPlusParticipants {
+  constructor(deviceId, proposition) {
+    this.deviceId = deviceId;
+    this.proposition = proposition;
+  }
+}
 
 export default SalleDattenteScreen;

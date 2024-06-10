@@ -17,6 +17,9 @@ import HomeScreen from "./src/screens/HomeScreen";
 import SessionScreen from "./src/screens/SessionScreen";
 import SalleDattenteScreen from "./src/screens/SalleDattenteScreen";
 import JoinGameScreen from "./src/screens/JoinGame";
+import NumberSelector from "./src/screens/NumberSelector";
+import PageDeJeu from "./src/screens/PageDeJeu";
+import GlobalVariables from "./GlobalVariables";
 
 let gameId: string;
 
@@ -82,19 +85,30 @@ const App = () => {
   const goToSalleDattenteScreen = () => setCurrentScreen("salleDattente");
   const goToPreviousSessionScreen = () => setCurrentScreen("session");
   const goToJoinGameScreen = () => setCurrentScreen("joinGame");
-
+  const goToPageDeJeu = () => setCurrentScreen("Jeu");
+  const goToNumberSelector = () => setCurrentScreen("numberSelector");
+  const [globalString, setGlobalString] = useState(GlobalVariables.globalString);
+  // Mettre à jour la variable globale lorsque l'état globalString change
+  useEffect(() => {
+    GlobalVariables.globalString = globalString;
+  }, [globalString]);
+  
   const createGame = async () => {
     try {
+
       const deviceId = await DeviceInfo.getUniqueId();
       const deviceName = await DeviceInfo.getDeviceName();
       const gameRef = await firestore().collection("Games").add({
-        createdBy: [{ deviceId, deviceName }],
+        createdBy: [deviceId, deviceName ],
         createdAt: firestore.FieldValue.serverTimestamp(),
         gameStatus: true,
         GameParticipantDeviceId: [],
         gameName: generateRandomName(),
+        MaxNombre: 0,
       });
       console.log(`Game created with ID: ${gameRef.id}`);
+      // Mettre à jour la variable globale
+      setGlobalString(gameRef.id);
       // You can store this game ID if needed for further operations
       goToSalleDattenteScreen();
     } catch (error) {
@@ -114,10 +128,16 @@ const App = () => {
         />
       )}
       {currentScreen === "salleDattente" && (
-        <SalleDattenteScreen onBack={goToPreviousSessionScreen} onNext={undefined} />
+        <SalleDattenteScreen onBack={goToPreviousSessionScreen} onNext={goToNumberSelector } />
       )}
       {currentScreen === "joinGame" && (
         <JoinGameScreen games={games} onBack={goToSessionScreen} onNext={goToSalleDattenteScreen} />
+      )}
+      { currentScreen === "numberSelector" && (
+        <NumberSelector onNext={goToPageDeJeu}/>
+      )}
+      { currentScreen === "Jeu" && (
+        <PageDeJeu onBack={goToSessionScreen}/>
       )}
     </View>
   );

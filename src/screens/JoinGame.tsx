@@ -73,7 +73,7 @@ const JoinGameScreen = ({ games, onBack, onNext }) => {
           >
             <View style={styles.gameItemContent}>
               <Text style={styles.gameName}>Partie de {item.gameName}</Text>
-              <Text style={styles.createdBy}>Créée par {item.createdBy[0].deviceName}</Text>
+              <Text style={styles.createdBy}>Créée par {item.createdBy[1]}</Text>
               <Text>Le {item.createdAt ? item.createdAt.toDate().toLocaleString() : 'date inconnue'}</Text>
             </View>
           </TouchableOpacity>
