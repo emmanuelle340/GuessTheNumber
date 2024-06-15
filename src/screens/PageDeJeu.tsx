@@ -50,86 +50,40 @@ const PageDeJeu = ({ onBack }) => {
       });
       return;
     }
-  
-    try {
+    Toast.show({
+      type:'success',
+      text1: 'Proposition soumise',
+      text2: `Votre proposition: ${proposal}`,
+    });
+
+    try{
       // Mettre à jour le compteur de propositions
       setProposalCount(prevCount => prevCount + 1);
-  
       const deviceId = await DeviceInfo.getUniqueId();
       const gameId = GlobalVariables.globalString;
       const roundsCollectionRef = firestore().collection('Round');
       const roundsQuery = roundsCollectionRef.where('gameId', '==', gameId);
+      const unsubscribe = roundsQuery.onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.unRound && data.unRound.length > 0) {
+            const lastRound = data.unRound[data.unRound.length - 1];
+            lastRound.LesPropositions.forEach(proposition => {
+              if (proposition.deviceId === deviceId) {
   
-      roundsQuery.get().then(querySnapshot => {
-        querySnapshot.forEach(doc => {
-          const roundData = doc.data();
-          const roundId = doc.id;
-          let unRound = roundData.unRound;
-  
-          // Vérifier la taille de unRound par rapport à proposalCount
-          if (unRound.length !== proposalCount) {
-            // Ajouter un nouvel élément à unRound avec propositions initialisées à -1
-            const newProposals = unRound[unRound.length - 1].LesPropositions.map(proposition => ({
-              deviceId: proposition.deviceId,
-              secretNumber: proposition.secretNumber,
-              proposition: -1,
-            }));
-            unRound.push({ LesPropositions: newProposals });
-  
-            // Mettre à jour la collection Round dans Firestore avec unRound étendu
-            roundsCollectionRef.doc(roundId).update({ unRound }).then(() => {
-              console.log('UnRound étendu avec succès.');
-            }).catch(error => {
-              console.error('Erreur lors de l\'extension de unRound :', error);
-            });
-          }
-  
-          // Mettre à jour la proposition dans la dernière occurrence de unRound avec le bon deviceId
-          const lastRoundIndex = unRound.length - 1;
-          const lastRound = unRound[lastRoundIndex];
-          const propositionIndex = lastRound.LesPropositions.findIndex(prop => prop.deviceId === deviceId);
-  
-          if (propositionIndex !== -1) {
-            // Mettre à jour la proposition dans LesPropositions
-            const updatedUnRound = [...unRound];
-            updatedUnRound[lastRoundIndex].LesPropositions[propositionIndex].proposition = parseInt(proposal, 10);
-  
-            // Mettre à jour la collection Round dans Firestore avec unRound mis à jour
-            roundsCollectionRef.doc(roundId).update({ unRound: updatedUnRound }).then(() => {
-              console.log('Proposition mise à jour avec succès.');
-              Toast.show({
-                type: 'success',
-                text1: 'Proposition soumise',
-                text2: `Votre proposition: ${proposal}`,
-              });
-            }).catch(error => {
-              console.error('Erreur lors de la mise à jour de la proposition :', error);
-              Toast.show({
-                type: 'error',
-                text1: 'Erreur',
-                text2: 'Erreur lors de la mise à jour de la proposition.',
-              });
+                // Vous pouvez ajouter d'autres logiques ici en fonction de vos besoins
+              }
             });
           }
         });
-      }).catch(error => {
-        console.error('Erreur lors de la récupération du round :', error);
-        Toast.show({
-          type: 'error',
-          text1: 'Erreur',
-          text2: 'Erreur lors de la récupération des données de la partie.',
-        });
       });
-    } catch (error) {
-      console.error('Erreur lors de la récupération de deviceId :', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erreur',
-        text2: 'Erreur lors de la récupération de l\'identifiant du périphérique.',
-      });
+  
+      // Mettre à jour le compteur de propositions
+      setProposalCount(prevCount => prevCount + 1);
+    }catch (error) {
+
     }
   };
-  
 
   return (
     <View style={styles.container}>
