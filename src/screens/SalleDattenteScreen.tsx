@@ -11,6 +11,7 @@ import firestore from "@react-native-firebase/firestore";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import GlobalVariables from "../../GlobalVariables";
 import Toast from "react-native-toast-message"; // Importer le module Toast
+import DeviceInfo from 'react-native-device-info';
 
 const SalleDattenteScreen = ({ onBack, onNext }) => {
   const [hostName, setHostName] = useState("");
@@ -37,7 +38,7 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
                 .doc(participantId)
                 .get();
               if (participantDoc.exists) {
-                participantsData.push(participantDoc.data().name);
+                participantsData.push(participantDoc.data().deviceName);
               }
             }
             setParticipants(participantsData);
@@ -61,15 +62,29 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
     const unsubscribe = firestore()
       .collection("Games")
       .doc(gameId)
-      .onSnapshot((doc) => {
+      .onSnapshot(async (doc) => {
         if (doc.exists) {
           const gameData = doc.data();
-          if (gameData.gameStatus) {
-            onNext(); // Trigger onNext if game status is true
+          setHostName(gameData.createdBy[1]);
+  
+          const participantIds = gameData.GameParticipantDeviceId;
+  
+          const participantsData = [];
+          for (const participantId of participantIds) {
+            const participantDoc = await firestore()
+              .collection("Players")
+              .doc(participantId)
+              .get();
+            if (participantDoc.exists) {
+              participantsData.push(participantDoc.data().deviceName);
+            }
           }
+          setParticipants(participantsData);
         } else {
           console.log(`Game with ID '${gameId}' does not exist.`);
         }
+      }, (error) => {
+        console.error("Error fetching game data:", error);
       });
   
     return () => unsubscribe();
@@ -82,7 +97,7 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
     try {
       // Vérifier le nombre de participants
       const numParticipants = participants.length + 1; // +1 pour l'hôte
-      if (numParticipants >2) {
+      if (numParticipants <2) {
         // Afficher un toast d'erreur si le nombre de participants est inférieur à 2
         Toast.show({
           type: "error",
@@ -104,11 +119,15 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         let MaListe: Array<propositionPlusParticipants> = [];
         if (gameDoc.exists) {
           const participantIds = gameDoc.get("GameParticipantDeviceId");
+          const hoteIds = gameDoc.get("createdBy");
           if (participantIds) {
             Object.values(participantIds).forEach((item) => {
               const tmp = new propositionPlusParticipants(item, -1,-1);
               MaListe.push(tmp);
             });
+            //Ajouter l'hote
+            const tmp = new propositionPlusParticipants(hoteIds[0], -1,-1)
+            MaListe.push(tmp);
           }
         } else {
           console.log(
@@ -119,8 +138,10 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
         }
         // Ajouter les propositions au document Round
         const RoundRef = await firestore().collection("Round").add({
-          MesPropositions: MaListe,
+          gameId: GlobalVariables.globalString,
+          unRound: [{LesPropositions: MaListe}],
         });
+        onNext();
 
       }
     } catch (error) {
