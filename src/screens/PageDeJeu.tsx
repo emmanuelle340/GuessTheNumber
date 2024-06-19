@@ -12,8 +12,6 @@ const PageDeJeu = ({ onBack }) => {
   const [proposalCount, setProposalCount] = useState(0); // État pour compter les propositions
   const [comparisonResults, setComparisonResults] = useState([]);
 
-
-
   useEffect(() => {
     const fetchSecretNumber = async () => {
       try {
@@ -118,7 +116,6 @@ const PageDeJeu = ({ onBack }) => {
       });
     }
   };
-  
 
   const comparaison = async () => {
     try {
@@ -128,7 +125,7 @@ const PageDeJeu = ({ onBack }) => {
       const roundsQuery = roundsCollectionRef.where('gameId', '==', gameId);
 
       const snapshot = await roundsQuery.get();
-      snapshot.forEach(doc => {
+      for (const doc of snapshot.docs) {
         const roundData = doc.data();
         const unRound = roundData.unRound;
 
@@ -141,8 +138,8 @@ const PageDeJeu = ({ onBack }) => {
             const userProposition = lesPropositions.find(proposition => proposition.deviceId === deviceId);
 
             if (userProposition) {
-              const comparisonResults = lesPropositions.filter(proposition => proposition.deviceId !== deviceId)
-                .map(proposition => {
+              const comparisonResults = await Promise.all(lesPropositions.filter(proposition => proposition.deviceId !== deviceId)
+                .map(async proposition => {
                   let comparison = '';
                   if (userProposition.proposition > proposition.secretNumber) {
                     comparison = 'plus grand';
@@ -151,12 +148,20 @@ const PageDeJeu = ({ onBack }) => {
                   } else {
                     comparison = 'égal';
                   }
+                  const participantDoc = await firestore()
+                    .collection("Players")
+                    .doc(proposition.deviceId)
+                    .get();
+                  let deviceName = '';
+                  if (participantDoc.exists) {
+                    deviceName = participantDoc.data().deviceName;
+                  }
                   return {
-                    deviceId: proposition.deviceId,
+                    deviceName: deviceName,
                     secretNumber: proposition.secretNumber,
                     comparison: comparison,
                   };
-                });
+                }));
               setComparisonResults(comparisonResults);
             }
           } else {
@@ -165,8 +170,7 @@ const PageDeJeu = ({ onBack }) => {
         } else {
           console.warn('unRound is empty or undefined.');
         }
-      });
-
+      }
     } catch (error) {
       console.error('Erreur lors de la comparaison des propositions :', error);
     }
@@ -203,7 +207,7 @@ const PageDeJeu = ({ onBack }) => {
         <View>
           {comparisonResults.map((result, index) => (
             <Text key={index}>
-              Pour {result.deviceId}: {result.comparison} par rapport à votre proposition de {result.secretNumber}.
+              Pour {result.deviceName}:  votre proposition est {result.comparison} .
             </Text>
           ))}
         </View>

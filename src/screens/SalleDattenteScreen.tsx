@@ -100,7 +100,7 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
   const handleLaunchGame = async () => {
     try {
       // Vérifier le nombre de participants
-      const numParticipants = participants.length + 1; // +1 pour l'hôte
+      const numParticipants = participants.length; // +1 pour l'hôte
       if (numParticipants <2) {
         // Afficher un toast d'erreur si le nombre de participants est inférieur à 2
         Toast.show({

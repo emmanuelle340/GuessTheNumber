@@ -102,7 +102,7 @@ const App = () => {
         createdBy: [deviceId, deviceName ],
         createdAt: firestore.FieldValue.serverTimestamp(),
         gameStatus: false,
-        GameParticipantDeviceId: [],
+        GameParticipantDeviceId: [deviceId],
         gameName: generateRandomName(),
         MaxNombre: 0,
       });
