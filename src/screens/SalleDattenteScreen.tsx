@@ -42,6 +42,10 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
               }
             }
             setParticipants(participantsData);
+             // Check if gameStatus is true and call onNext if it is
+             if (gameData.gameStatus) {
+              onNext();
+            }
           } else {
             console.log(`Game with ID '${gameId}' does not exist.`);
           }
