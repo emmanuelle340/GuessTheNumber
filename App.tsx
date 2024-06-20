@@ -63,22 +63,25 @@ const App = () => {
   const [currentScreen, setCurrentScreen] = useState("login");
   const [games, setGames] = useState([]);
 
+  
   useEffect(() => {
-    const fetchGames = async () => {
-      const gamesSnapshot = await firestore()
+    if (currentScreen === "joinGame") {
+      const unsubscribe = firestore()
         .collection("Games")
         .where("gameStatus", "==", false)
-        .get();
-      const gamesData = gamesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setGames(gamesData);
-    };
-    if (currentScreen === "joinGame") {
-      fetchGames();
+        .onSnapshot((snapshot) => {
+          const gamesData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setGames(gamesData);
+        });
+
+      // Clean up the subscription on component unmount
+      return () => unsubscribe();
     }
   }, [currentScreen]);
+
 
   const goToHomeScreen = () => setCurrentScreen("home");
   const goToSessionScreen = () => setCurrentScreen("session");

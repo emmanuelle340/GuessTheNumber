@@ -1,16 +1,44 @@
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import Toast from 'react-native-toast-message';
 import firestore from '@react-native-firebase/firestore';
-import DeviceInfo from 'react-native-device-info';
+import DeviceInfo, { getUniqueId } from 'react-native-device-info';
 import GlobalVariables from '../../GlobalVariables';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// Créer le contexte
+//const DeviceIdContext = createContext()
 
 const PageDeJeu = ({ onBack }) => {
   const [secretNumber, setSecretNumber] = useState(null);
   const [proposal, setProposal] = useState('');
   const [waitingMessage, setWaitingMessage] = useState(false);
-  const [proposalCount, setProposalCount] = useState(0); // État pour compter les propositions
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+  const [proposalCount, setProposalCount] = useState(0);
   const [comparisonResults, setComparisonResults] = useState([]);
+  
+  const [isEliminated, setIsEliminated] = useState(false);
+
+  const [deviceId, setDeviceId] = useState(null);
+
+  useEffect(() => {
+  
+    const checkUser = async () => {
+      try {
+        const uniqueId = await DeviceInfo.getUniqueId();
+        const storedDeviceId = await AsyncStorage.getItem("deviceId");
+
+        if (storedDeviceId !== uniqueId) {
+          await AsyncStorage.setItem("deviceId", uniqueId);
+        }
+
+        setDeviceId(uniqueId);
+      } catch (error) {
+        console.error("Erreur lors de la vérification de l'ID de l'appareil : ", error);
+      }
+    };
+    checkUser();
+  }, []);
+  
 
   useEffect(() => {
     const fetchSecretNumber = async () => {
@@ -19,6 +47,7 @@ const PageDeJeu = ({ onBack }) => {
         const gameId = GlobalVariables.globalString;
         const roundsCollectionRef = firestore().collection('Round');
         const roundsQuery = roundsCollectionRef.where('gameId', '==', gameId);
+
         const unsubscribe = roundsQuery.onSnapshot(snapshot => {
           snapshot.forEach(doc => {
             const data = doc.data();
@@ -29,6 +58,26 @@ const PageDeJeu = ({ onBack }) => {
                   setSecretNumber(proposition.secretNumber);
                 }
               });
+              const allSecretNumbersAvailable = lastRound.LesPropositions.every(
+                prop => prop.secretNumber !== -1
+              );
+  
+              if (allSecretNumbersAvailable) {
+                setIsButtonDisabled(false);
+              } else {
+                setIsButtonDisabled(true);
+              }
+  
+              const allProposalsSubmitted = lastRound.LesPropositions.every(
+                prop => (prop.deviceId === deviceId) || (prop.proposition !== -1)
+              );
+  
+              if (allProposalsSubmitted) {
+                setWaitingMessage(false);
+              } else {
+                setWaitingMessage(true);
+              }
+
             }
           });
         });
@@ -40,6 +89,69 @@ const PageDeJeu = ({ onBack }) => {
     };
 
     fetchSecretNumber();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .collection('ParticipantsElimines')
+      .where('gameId', '==', GlobalVariables.globalString)
+      .onSnapshot(querySnapshot => {
+        let eliminated = false;
+  
+        querySnapshot.forEach(doc => {
+          const data = doc.data();
+          const DeviceIdEliminatedParticipants = data.DeviceIdEliminatedParticipants;
+  
+          DeviceIdEliminatedParticipants.forEach(participant => {
+            
+            if (participant.elimine === deviceId) {
+              eliminated = true;
+            }
+          });
+        });
+  
+        setIsEliminated(eliminated);
+  
+        if (eliminated) {
+          Alert.alert('Vous êtes éliminé', 'Bye Bye.', [
+            { text: 'OK', onPress: () => onBack() }
+          ]);
+        }
+      }, error => {
+        console.error('Erreur lors de la vérification du statut d\'élimination : ', error);
+      });
+  
+    return () => unsubscribe();
+  }, [GlobalVariables.globalString, deviceId]);
+  
+
+  useEffect(() => {
+
+    const gameDocRef = firestore().collection('Games').doc(GlobalVariables.globalString);
+
+    const unsubscribe = gameDocRef.onSnapshot(docSnapshot => {
+      if (docSnapshot.exists) {
+        const gameData = docSnapshot.data();
+        const participants = gameData.GameParticipantDeviceId || [];
+
+        if (participants.length === 1 && participants[0] === deviceId) {
+          // L'utilisateur est le seul participant
+          Alert.alert('Vous etes le gagnant', 'Felicitations.', [
+            { text: 'OK', onPress: () => onBack() }
+          ]);
+          
+        }
+      } else {
+        console.error('Game document does not exist');
+        
+      }
+    }, error => {
+      console.error('Error listening to game document: ', error);
+      
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   const handleProposalSubmit = async () => {
@@ -54,7 +166,6 @@ const PageDeJeu = ({ onBack }) => {
   
     try {
       setProposalCount(prevCount => prevCount + 1);
-  
       const deviceId = await DeviceInfo.getUniqueId();
       const gameId = GlobalVariables.globalString;
       const roundsCollectionRef = firestore().collection('Round');
@@ -66,7 +177,7 @@ const PageDeJeu = ({ onBack }) => {
         const roundId = doc.id;
         const unRound = roundData.unRound;
   
-        if (unRound.length !== proposalCount) {
+        if (proposalCount !== unRound.length) {
           const newProposals = unRound[unRound.length - 1].LesPropositions.map(proposition => ({
             deviceId: proposition.deviceId,
             secretNumber: proposition.secretNumber,
@@ -96,7 +207,21 @@ const PageDeJeu = ({ onBack }) => {
               text1: 'Proposition soumise',
               text2: `Votre proposition: ${proposal}`,
             });
-            comparaison(); // Déclenche la comparaison après la mise à jour
+  
+            const allSubmitted = updatedUnRound[lastRoundIndex].LesPropositions.every(
+              prop => prop.proposition !== -1
+            );
+  
+            if (allSubmitted) {
+              setWaitingMessage(false);
+            } else {
+              setWaitingMessage(true);
+            }
+  
+            setIsButtonDisabled(!allSubmitted);
+  
+            comparaison();
+  
           }).catch(error => {
             console.error('Erreur lors de la mise à jour de la proposition :', error);
             Toast.show({
@@ -116,6 +241,7 @@ const PageDeJeu = ({ onBack }) => {
       });
     }
   };
+  
 
   const comparaison = async () => {
     try {
@@ -130,7 +256,7 @@ const PageDeJeu = ({ onBack }) => {
         const unRound = roundData.unRound;
 
         if (unRound && unRound.length > 0) {
-          const lastRoundIndex = unRound.length - 1; // Récupérer le dernier index de unRound
+          const lastRoundIndex = unRound.length - 1;
           const lastRound = unRound[lastRoundIndex];
           const lesPropositions = lastRound.LesPropositions;
 
@@ -142,11 +268,12 @@ const PageDeJeu = ({ onBack }) => {
                 .map(async proposition => {
                   let comparison = '';
                   if (userProposition.proposition > proposition.secretNumber) {
-                    comparison = 'plus grand';
+                    comparison = 'plus grande';
                   } else if (userProposition.proposition < proposition.secretNumber) {
-                    comparison = 'plus petit';
+                    comparison = 'plus petite';
                   } else {
-                    comparison = 'égal';
+                    comparison = 'égale';
+                    await updateParticipantsElimines(gameId, proposition.deviceId, deviceId);
                   }
                   const participantDoc = await firestore()
                     .collection("Players")
@@ -176,6 +303,32 @@ const PageDeJeu = ({ onBack }) => {
     }
   };
 
+  const updateParticipantsElimines = async (gameId, eliminatedDeviceId, deviceId) => {
+    const participantsRef = firestore().collection('ParticipantsElimines');
+
+    try {
+      const snapshot = await participantsRef.where('gameId', '==', gameId).get();
+
+      if (!snapshot.empty) {
+        const participantDoc = snapshot.docs[0];
+        await participantDoc.ref.update({
+          DeviceIdEliminatedParticipants: firestore.FieldValue.arrayUnion({ elimine: eliminatedDeviceId, par: deviceId })
+        });
+
+        console.log('Données mises à jour avec succès.');
+      } else {
+        await participantsRef.add({
+          gameId: gameId,
+          DeviceIdEliminatedParticipants: [{ elimine: eliminatedDeviceId, par: deviceId }]
+        });
+
+        console.log('Nouveau document créé avec succès.');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des données :', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.topSection}>
@@ -189,13 +342,14 @@ const PageDeJeu = ({ onBack }) => {
           value={proposal}
           onChangeText={setProposal}
           placeholder="Entrez votre proposition"
-          editable={!waitingMessage}
+          //editable={!waitingMessage}
         />
         <Button
           title="Je valide ma proposition"
           onPress={handleProposalSubmit}
-          disabled={waitingMessage}
+          //disabled={isButtonDisabled || waitingMessage}
         />
+
         {waitingMessage && (
           <Text style={styles.waitingMessage}>En attente du choix des autres joueurs...</Text>
         )}
@@ -207,7 +361,7 @@ const PageDeJeu = ({ onBack }) => {
         <View>
           {comparisonResults.map((result, index) => (
             <Text key={index}>
-              Pour {result.deviceName}:  votre proposition est {result.comparison} .
+               Votre proposition est {result.comparison} que le nombre de  {result.deviceName}
             </Text>
           ))}
         </View>

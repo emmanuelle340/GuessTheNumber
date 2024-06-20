@@ -129,9 +129,7 @@ const SalleDattenteScreen = ({ onBack, onNext }) => {
               const tmp = new propositionPlusParticipants(item, -1,-1);
               MaListe.push(tmp);
             });
-            //Ajouter l'hote
-            const tmp = new propositionPlusParticipants(hoteIds[0], -1,-1)
-            MaListe.push(tmp);
+            
           }
         } else {
           console.log(

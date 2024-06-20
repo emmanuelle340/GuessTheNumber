@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DeviceInfo from 'react-native-device-info';
@@ -7,6 +7,7 @@ import Toast from 'react-native-toast-message';
 import GlobalVariables from "../../GlobalVariables";
 
 const SessionScreen = ({ onNext, onBack, createGame }) => {
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   
   useEffect(() => {
     const handleLeaveGame = async () => {
@@ -47,6 +48,13 @@ const SessionScreen = ({ onNext, onBack, createGame }) => {
     handleLeaveGame();
   }, []); 
 
+  const handleCreateGame = () => {
+    setIsButtonDisabled(true);
+    createGame();
+    setTimeout(() => {
+      setIsButtonDisabled(false);
+    }, 10000); // 10 seconds
+  };
 
   return (
     <View style={styles.container}>
@@ -54,7 +62,7 @@ const SessionScreen = ({ onNext, onBack, createGame }) => {
         <Icon name="arrow-back" size={30} />
       </TouchableOpacity>
       <Text style={styles.text}>Session Screen</Text>
-      <Button title="Creer une partie" onPress={createGame} />
+      <Button title="Creer une partie" onPress={handleCreateGame} disabled={isButtonDisabled} />
       <Button title="Rejoindre une partie" onPress={onNext} />
 
       <Toast ref={(ref) => Toast.setRef(ref)} />
